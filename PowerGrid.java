@@ -1,10 +1,11 @@
+import java.io.*;
 import java.util.*;
 
 public class PowerGrid {
     private static class Edge {
         private int start, end, weight;
         private String name;
-        private static final String[] LETTERS = {null, "a", "b", "c", "d", "e", "f"};
+        // private static final String[] LETTERS = {null, "a", "b", "c", "d", "e", "f"};
 
         private Edge(int start, int end, int weight, String name) {
             this.start = start;
@@ -15,15 +16,15 @@ public class PowerGrid {
 
         @Override
         public String toString() {
-            name = LETTERS[start] + LETTERS[end];
+            // name = LETTERS[start] + LETTERS[end];
             return name;
         }
     }
 
-    private static final int NIL = -1, INFINITY = Integer.MAX_VALUE;
-    public static List<Edge> mst(List<List<Edge>> graph) {
-        int[][] predecessorsAndCosts = new int[graph.size()][];
-        for (int i = 1; i < graph.size(); i++)
+    private static final int NIL = -1, INFINITY = Integer.MAX_VALUE, MAX_VERTICES = 1000;
+    public static List<Edge> mst(List<Edge>[] graph) {
+        int[][] predecessorsAndCosts = new int[graph.length][];
+        for (int i = 1; i < graph.length; i++)
             predecessorsAndCosts[i] = new int[]{NIL, INFINITY};
         final Comparator<Integer> vertexComparator = (x, y) -> {
             int xCost = predecessorsAndCosts[x][1], yCost = predecessorsAndCosts[y][1];
@@ -32,13 +33,13 @@ public class PowerGrid {
                 : x - y;
         };
         PriorityQueue<Integer> unvisited = new PriorityQueue<>(vertexComparator);
-        for (int i = 1; i < graph.size(); i++)
+        for (int i = 1; i < graph.length; i++)
             unvisited.add(i);
-        boolean[] visited = new boolean[graph.size()];
+        boolean[] visited = new boolean[graph.length];
         while (!unvisited.isEmpty()) {
             int min = unvisited.poll();
             visited[min] = true;
-            for (Edge e : graph.get(min)) {
+            for (Edge e : graph[min]) {
                 int vertex = e.end;
                 if (!visited[vertex]) {
                     int cost = predecessorsAndCosts[vertex][1];
@@ -54,9 +55,9 @@ public class PowerGrid {
             }
         }
         List<Edge> mst = new ArrayList<>();
-        for (int i = 2; i < graph.size(); i++) {
+        for (int i = 2; i < graph.length; i++) {
             int predecessor = predecessorsAndCosts[i][0];
-            for (Edge e : graph.get(predecessor))
+            for (Edge e : graph[predecessor])
                 if (e.end == i)
                     mst.add(e);
         }
@@ -67,7 +68,8 @@ public class PowerGrid {
         return mst;
     }
 
-    private static List<List<Edge>> init() {
+    @SuppressWarnings("unchecked")
+    private static List<Edge>[] init() {
         List<List<Edge>> graph = new ArrayList<>();
         List<Edge> a = new ArrayList<>(), b = new ArrayList<>(), c = new ArrayList<>(), d = new ArrayList<>(), e = new ArrayList<>(), f = new ArrayList<>();
         Edge ab = new Edge(1, 2, 3, null), ba = new Edge(2, 1, 3, null);
@@ -107,12 +109,80 @@ public class PowerGrid {
         graph.add(d);
         graph.add(e);
         graph.add(f);
-        return graph;
+        return (List<Edge>[]) graph.toArray();
+    }
+    
+    private static boolean isNumber(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
-        List<List<Edge>> graph = init();
-        System.out.println(graph);
-        System.out.println(mst(graph));
+        if (args.length != 1) {
+            System.err.println("Usage: java PowerGrid <input file>");
+            System.exit(1);
+        }
+        try {
+            File file = new File(args[0]);
+            Scanner s = new Scanner(file);
+            int numberOfVertices = s.nextInt();
+            if (numberOfVertices > MAX_VERTICES) {
+                System.err.println("Error: Invalid number of vertices '" + numberOfVertices + "' on line 1.");
+                System.exit(1);
+            }
+            s.nextLine();
+            List<Edge>[] graph = (List<Edge>[]) new List[numberOfVertices + 1];
+            for (int i = 2; s.hasNextLine(); i++) {
+                String line = s.nextLine().trim();
+                String[] components = line.split(",");
+                System.err.println(Arrays.toString(components));
+                if (components.length != 4) {
+                    System.err.println("Error: Invalid edge data '" + line + "' on line " + i + ".");
+                    System.exit(1);
+                }
+                if (!isNumber(components[0])) {
+                    System.err.println("Error: Starting vertex '" + components[0] + "' on line " + i + " is not among valid values 1-" + numberOfVertices + ".");
+                    System.exit(1);
+                }
+                if (!isNumber(components[1])) {
+                    System.err.println("Error: Ending vertex '" + components[1] + "' on line " + i + " is not among valid values 1-" + numberOfVertices + ".");
+                    System.exit(1);
+                }
+                int start = Integer.parseInt(components[0]);
+                if (start < 1 || start > numberOfVertices) {
+                    System.err.println("Error: Starting vertex '" + start + "' on line " + i + " is not among valid values 1-" + numberOfVertices + ".");
+                    System.exit(1);
+                }
+                int end = Integer.parseInt(components[1]);
+                if (end < 1 || end > numberOfVertices) {
+                    System.err.println("Error: Ending vertex '" + end + "' on line " + i + " is not among valid values 1-" + numberOfVertices + ".");
+                    System.exit(1);
+                }
+                int weight = Integer.parseInt(components[2]);
+                if (weight < 0) {
+                    System.err.println("Error: Invalid edge weight '" + weight + "' on line " + i + ".");
+                    System.exit(1);
+                }
+                String name = components[3];
+                Edge edge = new Edge(start, end, weight, name);
+                if (graph[start] == null)
+                    graph[start] = new ArrayList<>();
+                graph[start].add(edge);
+                Edge reverseEdge = new Edge(end, start, weight, name);
+                if (graph[end] == null)
+                    graph[end] = new ArrayList<>();
+                graph[end].add(reverseEdge);
+            }
+            s.close();
+            System.out.println(mst(graph));
+        } catch (FileNotFoundException e) {
+            System.err.println("Error: Cannot open file '" + args[0] + "'.");
+            System.exit(1);
+        }
     }
 }
