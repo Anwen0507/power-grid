@@ -15,7 +15,8 @@ public class PowerGrid {
 
         @Override
         public String toString() {
-            return LETTERS[start] + LETTERS[end];
+            name = LETTERS[start] + LETTERS[end];
+            return name;
         }
     }
 
@@ -24,13 +25,13 @@ public class PowerGrid {
         int[][] predecessorsAndCosts = new int[graph.size()][];
         for (int i = 1; i < graph.size(); i++)
             predecessorsAndCosts[i] = new int[]{NIL, INFINITY};
-        final Comparator<Integer> comparator = (x, y) -> {
+        final Comparator<Integer> vertexComparator = (x, y) -> {
             int xCost = predecessorsAndCosts[x][1], yCost = predecessorsAndCosts[y][1];
             return xCost != yCost
                 ? xCost - yCost
                 : x - y;
         };
-        PriorityQueue<Integer> unvisited = new PriorityQueue<>(comparator);
+        PriorityQueue<Integer> unvisited = new PriorityQueue<>(vertexComparator);
         for (int i = 1; i < graph.size(); i++)
             unvisited.add(i);
         boolean[] visited = new boolean[graph.size()];
@@ -59,6 +60,10 @@ public class PowerGrid {
                 if (e.end == i)
                     mst.add(e);
         }
+        final Comparator<Edge> edgeComparator = (x, y) -> {
+            return x.name.compareTo(y.name);
+        };
+        Collections.sort(mst, edgeComparator);
         return mst;
     }
 
