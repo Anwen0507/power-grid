@@ -13,15 +13,10 @@ public class PowerGrid {
             this.weight = weight;
             this.name = name;
         }
-
-        @Override
-        public String toString() {
-            // name = LETTERS[start] + LETTERS[end];
-            return name;
-        }
     }
 
     private static final int NIL = -1, INFINITY = Integer.MAX_VALUE, MAX_VERTICES = 1000;
+    private static long totalWireLength;
     public static List<Edge> mst(List<Edge>[] graph) {
         int[][] predecessorsAndCosts = new int[graph.length][];
         for (int i = 1; i < graph.length; i++)
@@ -54,12 +49,19 @@ public class PowerGrid {
                 }
             }
         }
+        for (int i = 1; i < visited.length; i++)
+            if (!visited[i]) {
+                System.err.println("No solution.");
+                System.exit(1);
+            }
         List<Edge> mst = new ArrayList<>();
         for (int i = 2; i < graph.length; i++) {
             int predecessor = predecessorsAndCosts[i][0];
             for (Edge e : graph[predecessor])
-                if (e.end == i)
+                if (e.end == i) {
                     mst.add(e);
+                    totalWireLength += e.weight;
+                }
         }
         final Comparator<Edge> edgeComparator = (x, y) -> {
             return x.name.compareTo(y.name);
@@ -121,7 +123,7 @@ public class PowerGrid {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "hiding"})
     public static void main(String[] args) {
         if (args.length != 1) {
             System.err.println("Usage: java PowerGrid <input file>");
@@ -137,10 +139,10 @@ public class PowerGrid {
             }
             s.nextLine();
             List<Edge>[] graph = (List<Edge>[]) new List[numberOfVertices + 1];
+            boolean[][] connected = new boolean[numberOfVertices + 1][numberOfVertices + 1];
             for (int i = 2; s.hasNextLine(); i++) {
                 String line = s.nextLine().trim();
                 String[] components = line.split(",");
-                System.err.println(Arrays.toString(components));
                 if (components.length != 4) {
                     System.err.println("Error: Invalid edge data '" + line + "' on line " + i + ".");
                     System.exit(1);
@@ -169,6 +171,10 @@ public class PowerGrid {
                     System.exit(1);
                 }
                 String name = components[3];
+                if (connected[start][end]) {
+                    System.err.println("Error: Duplicate edge '" + line + "' found on line " + i + ".");
+                    System.exit(1);
+                }
                 Edge edge = new Edge(start, end, weight, name);
                 if (graph[start] == null)
                     graph[start] = new ArrayList<>();
@@ -177,11 +183,20 @@ public class PowerGrid {
                 if (graph[end] == null)
                     graph[end] = new ArrayList<>();
                 graph[end].add(reverseEdge);
+                connected[start][end] = true;
+                connected[end][start] = true;
             }
             s.close();
-            System.out.println(mst(graph));
+            List<Edge> mst = mst(graph);
+            System.out.println("Total wire length (meters): " + totalWireLength);
+            for (Edge e : mst)
+                System.out.println(e.name + " [" + e.weight + "]");
+            System.exit(0);
         } catch (FileNotFoundException e) {
             System.err.println("Error: Cannot open file '" + args[0] + "'.");
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Error: An I/O error occurred reading '" + args[0] + "'.");
             System.exit(1);
         }
     }
