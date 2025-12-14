@@ -67,7 +67,10 @@ public class PowerGrid {
                 }
         }
         final Comparator<Edge> edgeComparator = (x, y) -> {
-            return x.name.compareTo(y.name);
+            int lexicographicalOrder = x.name.compareTo(y.name);
+            return lexicographicalOrder != 0
+                ? lexicographicalOrder
+                : x.weight - y.weight;
         };
         Collections.sort(mst, edgeComparator);
         return mst;
@@ -133,17 +136,21 @@ public class PowerGrid {
             System.exit(1);
         }
         try (Scanner s = new Scanner(new File(args[0]))) {
-            int numberOfVertices = s.nextInt();
+            String firstLine = s.nextLine();
+            if (!isNumber(firstLine)) {
+                System.err.println("Error: Invalid number of vertices '" + firstLine + "' on line 1.");
+                System.exit(1);
+            }
+            int numberOfVertices = Integer.parseInt(firstLine);
             if (numberOfVertices > MAX_VERTICES || numberOfVertices < 1) {
                 System.err.println("Error: Invalid number of vertices '" + numberOfVertices + "' on line 1.");
                 System.exit(1);
             }
-            s.nextLine();
             List<Edge>[] graph = (List<Edge>[]) new List[numberOfVertices + 1];
             boolean[][] connected = new boolean[numberOfVertices + 1][numberOfVertices + 1];
             for (int i = 2; s.hasNextLine(); i++) {
                 String line = s.nextLine().trim();
-                String[] components = line.split(",");
+                String[] components = line.split(",", -1);
                 if (components.length != 4) {
                     System.err.println("Error: Invalid edge data '" + line + "' on line " + i + ".");
                     System.exit(1);
@@ -166,13 +173,17 @@ public class PowerGrid {
                     System.err.println("Error: Ending vertex '" + end + "' on line " + i + " is not among valid values 1-" + numberOfVertices + ".");
                     System.exit(1);
                 }
+                if (!isNumber(components[2])) {
+                    System.err.println("Error: Invalid edge weight '" + components[2] + "' on line " + i + ".");
+                    System.exit(1);
+                }
                 int weight = Integer.parseInt(components[2]);
-                if (weight < 0) {
+                if (weight <= 0) {
                     System.err.println("Error: Invalid edge weight '" + weight + "' on line " + i + ".");
                     System.exit(1);
                 }
                 String name = components[3];
-                if (connected[start][end]) {
+                if (connected[start][end] || connected[end][start]) {
                     System.err.println("Error: Duplicate edge '" + line + "' found on line " + i + ".");
                     System.exit(1);
                 }
