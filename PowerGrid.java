@@ -19,7 +19,8 @@ public class PowerGrid {
     private static long totalWireLength;
     public static List<Edge> mst(List<Edge>[] graph) {
         int[][] predecessorsAndCosts = new int[graph.length][];
-        for (int i = 1; i < graph.length; i++)
+        predecessorsAndCosts[1] = new int[]{NIL, 0};
+        for (int i = 2; i < graph.length; i++)
             predecessorsAndCosts[i] = new int[]{NIL, INFINITY};
         final Comparator<Integer> vertexComparator = (x, y) -> {
             int xCost = predecessorsAndCosts[x][1], yCost = predecessorsAndCosts[y][1];
@@ -34,6 +35,8 @@ public class PowerGrid {
         while (!unvisited.isEmpty()) {
             int min = unvisited.poll();
             visited[min] = true;
+            if (graph[min] == null)
+                continue;
             for (Edge e : graph[min]) {
                 int vertex = e.end;
                 if (!visited[vertex]) {
@@ -50,9 +53,9 @@ public class PowerGrid {
             }
         }
         for (int i = 1; i < visited.length; i++)
-            if (!visited[i]) {
+            if (predecessorsAndCosts[i][1] == INFINITY) {
                 System.err.println("No solution.");
-                System.exit(1);
+                System.exit(0);
             }
         List<Edge> mst = new ArrayList<>();
         for (int i = 2; i < graph.length; i++) {
@@ -123,17 +126,15 @@ public class PowerGrid {
         }
     }
 
-    @SuppressWarnings({"unchecked", "hiding"})
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
         if (args.length != 1) {
             System.err.println("Usage: java PowerGrid <input file>");
             System.exit(1);
         }
-        try {
-            File file = new File(args[0]);
-            Scanner s = new Scanner(file);
+        try (Scanner s = new Scanner(new File(args[0]))) {
             int numberOfVertices = s.nextInt();
-            if (numberOfVertices > MAX_VERTICES) {
+            if (numberOfVertices > MAX_VERTICES || numberOfVertices < 1) {
                 System.err.println("Error: Invalid number of vertices '" + numberOfVertices + "' on line 1.");
                 System.exit(1);
             }
@@ -186,7 +187,9 @@ public class PowerGrid {
                 connected[start][end] = true;
                 connected[end][start] = true;
             }
-            s.close();
+            IOException ioException = s.ioException();
+            if (ioException != null)
+                throw ioException;
             List<Edge> mst = mst(graph);
             System.out.println("Total wire length (meters): " + totalWireLength);
             for (Edge e : mst)
